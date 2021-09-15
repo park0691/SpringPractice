@@ -1,6 +1,7 @@
 package com.example.junittesting.dao;
 
 import com.example.junittesting.domain.User;
+import org.springframework.dao.EmptyResultDataAccessException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,7 +31,7 @@ public class UserDao {
 
     public User get(String userId) throws ClassNotFoundException, SQLException {
         Connection conn = connectionMaker.makeConnection();
-        String sql = "select user_id, user_pw, user_name, user_address, user_email from users where user_id = ?";
+        String sql = "select user_id, user_pw, user_name from users where user_id = ?";
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setString(1, userId);
 
@@ -46,6 +47,8 @@ public class UserDao {
         rs.close();
         pstmt.close();
         conn.close();
+
+        if (user == null) throw new EmptyResultDataAccessException(1);
 
         return user;
     }

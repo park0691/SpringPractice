@@ -28,4 +28,12 @@ public class User {
     public void setPw(String pw) {
         this.pw = pw;
     }
+
+    public User() { }
+
+    public User(String id, String name, String pw) {
+        this.id = id;
+        this.name = name;
+        this.pw = pw;
+    }
 }

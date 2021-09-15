@@ -3,6 +3,7 @@ package com.example.junittesting.test;
 import com.example.junittesting.dao.DaoFactory;
 import com.example.junittesting.dao.UserDao;
 import com.example.junittesting.domain.User;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
@@ -11,14 +12,17 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import java.sql.SQLException;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
-public class UserDaoTest {
+public class UserDaoTest2 {
+    private UserDao dao;
+    @Before
+    public void setUp() {
+        ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
+        this.dao = context.getBean("userDao", UserDao.class);
+    }
     @Test
     public void addAndGet() throws SQLException, ClassNotFoundException {
-        ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
-        UserDao dao = context.getBean("userDao", UserDao.class);
-
         dao.deleteAll();
         assertThat(dao.getCount(), is(0));
 
@@ -28,7 +32,7 @@ public class UserDaoTest {
         user.setPw("paaapapa");
 
         dao.add(user);
-        assertThat(dao.getCount(), is(0));
+        assertThat(dao.getCount(), is(1));
 
         User user2 = dao.get(user.getId());
 
@@ -41,8 +45,6 @@ public class UserDaoTest {
 
     @Test
     public void getCount() throws SQLException, ClassNotFoundException {
-        ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
-        UserDao dao = context.getBean("userDao", UserDao.class);
         User user1 = new User("gyumee", "박성철", "springno1");
         User user2 = new User("leegw700", "이길원", "springno2");
         User user3 = new User("bumjin", "박범진", "springno3");
@@ -62,8 +64,6 @@ public class UserDaoTest {
 
     @Test
     public void addAndGet2() throws SQLException, ClassNotFoundException {
-        ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
-        UserDao dao = context.getBean("userDao", UserDao.class);
         User user1 = new User("gyumee", "박성철", "springno1");
         User user2 = new User("leegw700", "이길원", "springno2");
 
@@ -85,8 +85,6 @@ public class UserDaoTest {
 
     @Test(expected= EmptyResultDataAccessException.class)
     public void getUserFailure() throws SQLException, ClassNotFoundException {
-        ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
-        UserDao dao = context.getBean("userDao", UserDao.class);
         dao.deleteAll();
         assertThat(dao.getCount(), is(0));
 

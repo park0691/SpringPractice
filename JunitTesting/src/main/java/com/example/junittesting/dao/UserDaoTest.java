@@ -8,10 +8,10 @@ import java.sql.SQLException;
 
 public class UserDaoTest {
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
-//        ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
+        ApplicationContext context = new AnnotationConfigApplicationContext(DaoFactory.class);
 //        UserDao dao = new DaoFactory().userDao();
-//        UserDao dao = context.getBean("userDao", UserDao.class);
-        UserDao dao = new UserDao();
+        UserDao dao = context.getBean("userDao", UserDao.class);
+//        UserDao dao = new UserDao();
 
         User user = new User();
         user.setId("spring");

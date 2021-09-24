@@ -1,14 +1,15 @@
 package springpractice.template.dao;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public class JdbcContext {
-    private ConnectionMaker connectionMaker;
+    private DataSource dataSource;
 
-    public JdbcContext(ConnectionMaker connectionMaker) {
-        this.connectionMaker = connectionMaker;
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
     }
 
     public void workWithStatementStrategy(StatementStrategy stmt) throws SQLException, ClassNotFoundException {
@@ -16,7 +17,7 @@ public class JdbcContext {
         PreparedStatement pstmt = null;
 
         try {
-            conn = connectionMaker.makeConnection();
+            conn = this.dataSource.getConnection();
             pstmt = stmt.makePreparedStatement(conn);
             pstmt.executeUpdate();
         } catch (SQLException e) {

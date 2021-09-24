@@ -3,22 +3,22 @@ package springpractice.template.dao;
 import springpractice.template.domain.User;
 import org.springframework.dao.EmptyResultDataAccessException;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class UserDao {
-    private ConnectionMaker connectionMaker;
+    private DataSource dataSource;
     private JdbcContext jdbcContext;
 
-    public UserDao(ConnectionMaker connectionMaker) {
-        this.connectionMaker = connectionMaker;
+    public void setDataSource(DataSource dataSource) {
+        this.jdbcContext = new JdbcContext();
+        this.jdbcContext.setDataSource(dataSource);
+        this.dataSource = dataSource;
     }
 
-    public void setJdbcContext(JdbcContext jdbcContext) {
-        this.jdbcContext = jdbcContext;
-    }
     /* 익명 내부 클래스 */
     public void add(final User user) throws ClassNotFoundException, SQLException {
         this.jdbcContext.workWithStatementStrategy(
@@ -37,7 +37,7 @@ public class UserDao {
     }
 
     public User get(String userId) throws ClassNotFoundException, SQLException {
-        Connection conn = connectionMaker.makeConnection();
+        Connection conn = dataSource.getConnection();
         String sql = "select user_id, user_pw, user_name from users where user_id = ?";
         PreparedStatement pstmt = conn.prepareStatement(sql);
         pstmt.setString(1, userId);
@@ -75,7 +75,7 @@ public class UserDao {
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         try {
-            conn = connectionMaker.makeConnection();
+            conn = dataSource.getConnection();
             pstmt = conn.prepareStatement("select count(*) from users");
             rs = pstmt.executeQuery();
             rs.next();
@@ -112,7 +112,7 @@ public class UserDao {
         PreparedStatement pstmt = null;
 
         try {
-            conn = connectionMaker.makeConnection();
+            conn = dataSource.getConnection();
             pstmt = stmt.makePreparedStatement(conn);
             pstmt.executeUpdate();
         } catch (SQLException e) {

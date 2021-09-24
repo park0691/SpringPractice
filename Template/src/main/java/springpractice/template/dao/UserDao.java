@@ -19,7 +19,7 @@ public class UserDao {
     public void setJdbcContext(JdbcContext jdbcContext) {
         this.jdbcContext = jdbcContext;
     }
-
+    /* 익명 내부 클래스 */
     public void add(final User user) throws ClassNotFoundException, SQLException {
         this.jdbcContext.workWithStatementStrategy(
             new StatementStrategy() {
@@ -63,6 +63,11 @@ public class UserDao {
     public void deleteAll() throws ClassNotFoundException, SQLException {
         StatementStrategy st = new DeleteAllStatement();
         this.jdbcContext.workWithStatementStrategy(st);
+    }
+
+    /* 변하지 않는 부분을 분리 */
+    public void deleteAll2() throws ClassNotFoundException, SQLException {
+        this.jdbcContext.executeSql("delete from users");
     }
 
     public int getCount() throws SQLException, ClassNotFoundException {

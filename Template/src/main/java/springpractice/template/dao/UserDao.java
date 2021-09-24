@@ -1,5 +1,10 @@
 package springpractice.template.dao;
 
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.RowMapper;
 import springpractice.template.domain.User;
 import org.springframework.dao.EmptyResultDataAccessException;
 
@@ -8,118 +13,64 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 public class UserDao {
-    private DataSource dataSource;
-    private JdbcContext jdbcContext;
+    private JdbcTemplate jdbcTemplate;
+
+    private RowMapper<User> userMapper =
+            new RowMapper<User>() {
+                @Override
+                public User mapRow(ResultSet rs, int rowNum) throws SQLException {
+                    User user = new User();
+                    user.setId(rs.getString("user_id"));
+                    user.setName(rs.getString("user_name"));
+                    user.setPw(rs.getString("user_pw"));
+                    return user;
+                }
+            };
 
     public void setDataSource(DataSource dataSource) {
-        this.jdbcContext = new JdbcContext();
-        this.jdbcContext.setDataSource(dataSource);
-        this.dataSource = dataSource;
+        this.jdbcTemplate = new JdbcTemplate(dataSource);
     }
 
-    /* 익명 내부 클래스 */
-    public void add(final User user) throws ClassNotFoundException, SQLException {
-        this.jdbcContext.workWithStatementStrategy(
-            new StatementStrategy() {
-                public PreparedStatement makePreparedStatement(Connection c) throws SQLException {
-                    PreparedStatement pstmt = c.prepareStatement("INSERT INTO users(user_id, user_pw, user_name)" +
-                            " VALUES(?, ?, ?)");
-                    pstmt.setString(1, user.getId());
-                    pstmt.setString(2, user.getPw());
-                    pstmt.setString(3, user.getName());
-
-                    return pstmt;
-                }
-            }
-        );
+    public void add(final User user) {
+        this.jdbcTemplate.update("INSERT INTO users(user_id, user_pw, user_name)" +
+                " VALUES(?, ?, ?)", user.getId(), user.getPw(), user.getName());
     }
 
     public User get(String userId) throws ClassNotFoundException, SQLException {
-        Connection conn = dataSource.getConnection();
         String sql = "select user_id, user_pw, user_name from users where user_id = ?";
-        PreparedStatement pstmt = conn.prepareStatement(sql);
-        pstmt.setString(1, userId);
-
-        ResultSet rs = pstmt.executeQuery();
-        User user = null;
-        if (rs.next()) {
-            user = new User();
-            user.setId(rs.getString("user_id"));
-            user.setPw(rs.getString("user_pw"));
-            user.setName(rs.getString("user_name"));
-        }
-
-        rs.close();
-        pstmt.close();
-        conn.close();
-
-        if (user == null) throw new EmptyResultDataAccessException(1);
-
-        return user;
+        return this.jdbcTemplate.queryForObject(sql,
+                new Object[]{userId}, this.userMapper);
     }
 
-    public void deleteAll() throws ClassNotFoundException, SQLException {
-        StatementStrategy st = new DeleteAllStatement();
-        this.jdbcContext.workWithStatementStrategy(st);
+    public List<User> getAll() {
+        return this.jdbcTemplate.query("select * from users order by user_id", this.userMapper);
     }
 
-    /* 변하지 않는 부분을 분리 */
-    public void deleteAll2() throws ClassNotFoundException, SQLException {
-        this.jdbcContext.executeSql("delete from users");
-    }
-
-    public int getCount() throws SQLException, ClassNotFoundException {
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-        try {
-            conn = dataSource.getConnection();
-            pstmt = conn.prepareStatement("select count(*) from users");
-            rs = pstmt.executeQuery();
-            rs.next();
-            return rs.getInt(1);
-        } catch (SQLException e) {
-            throw e;
-        } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException e) {
-
+    public void deleteAll() {
+        this.jdbcTemplate.update(
+                new PreparedStatementCreator() {
+                    public PreparedStatement createPreparedStatement(Connection conn) throws SQLException {
+                        return conn.prepareStatement("delete from users");
+                    }
                 }
-            }
-            if (pstmt != null) {
-                try {
-                    pstmt.close();
-                } catch (SQLException e) {
-
-                }
-            }
-            if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-
-                }
-            }
-        }
+        );
     }
 
-    public void jdbcContextWithStatementStrategy(StatementStrategy stmt) throws SQLException, ClassNotFoundException {
-        Connection conn = null;
-        PreparedStatement pstmt = null;
-
-        try {
-            conn = dataSource.getConnection();
-            pstmt = stmt.makePreparedStatement(conn);
-            pstmt.executeUpdate();
-        } catch (SQLException e) {
-            throw e;
-        } finally {
-            if (pstmt != null) { try { pstmt.close(); } catch (SQLException e) { } }
-            if (conn != null) { try { conn.close(); } catch (SQLException e) { } }
-        }
+    public int getCount() {
+        return this.jdbcTemplate.query(new PreparedStatementCreator() {
+            @Override
+            public PreparedStatement createPreparedStatement(Connection con) throws SQLException {
+                return con.prepareStatement("select count(*) from users");
+            }
+        }, new ResultSetExtractor<Integer>() {
+            @Override
+            public Integer extractData(ResultSet rs) throws SQLException, DataAccessException {
+                rs.next();
+                return rs.getInt(1);
+            }
+        });
     }
 }

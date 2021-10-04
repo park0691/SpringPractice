@@ -10,8 +10,11 @@ import springpractice.dao.DaoFactory;
 import springpractice.dao.UserDao;
 import springpractice.domain.Level;
 import springpractice.domain.User;
+import springpractice.service.TestUserService;
+import springpractice.service.TestUserServiceException;
 import springpractice.service.UserService;
 
+import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
@@ -19,6 +22,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static springpractice.service.UserService.MIN_LOGCOUNT_FOR_SILVER;
 import static springpractice.service.UserService.MIN_RECOMMEND_FOR_GOLD;
 
@@ -29,6 +33,8 @@ public class UserServiceTest {
     UserService userService;
     @Autowired
     UserDao userDao;
+    @Autowired
+    DataSource dataSource;
 
     List<User> users;
 
@@ -47,7 +53,7 @@ public class UserServiceTest {
         assertThat(this.userService, is(notNullValue()));
     }
     @Test
-    public void testUpgradeLevels() throws Exception {
+    public void upgradeLevels() throws Exception {
         userDao.deleteAll();
 
         for (User user : users) {
@@ -56,11 +62,11 @@ public class UserServiceTest {
 
         userService.upgradeLevels();
 
-        checkLevel(users.get(0), Level.BASIC);
-        checkLevel(users.get(1), Level.SILVER);
-        checkLevel(users.get(2), Level.SILVER);
-        checkLevel(users.get(3), Level.GOLD);
-        checkLevel(users.get(4), Level.GOLD);
+        checkLevelUpgraded(users.get(0), false);
+        checkLevelUpgraded(users.get(1), true);
+        checkLevelUpgraded(users.get(2), false);
+        checkLevelUpgraded(users.get(3), true);
+        checkLevelUpgraded(users.get(4), false);
     }
     @Test
     public void add() throws SQLException, ClassNotFoundException {
@@ -79,8 +85,30 @@ public class UserServiceTest {
         assertThat(userWithLevelRead.getLevel(), is(userWithLevel.getLevel()));
         assertThat(userWithoutLevelRead.getLevel(), is(Level.BASIC));
     }
-    private void checkLevel(User user, Level expectedLevel) throws SQLException, ClassNotFoundException {
+    @Test
+    public void upgradeAllOrNothing() throws Exception {
+        UserService testUserService = new TestUserService(users.get(3).getId());
+        testUserService.setUserDao(this.userDao);
+        testUserService.setDataSource(this.dataSource);
+
+        userDao.deleteAll();
+        for(User user : users) userDao.add(user);
+
+        try {
+            testUserService.upgradeLevels();
+            fail("TestUserServiceException expected");
+        } catch(TestUserServiceException e) {
+
+        }
+
+        checkLevelUpgraded(users.get(1), false);
+    }
+    private void checkLevelUpgraded(User user, boolean upgraded) throws SQLException, ClassNotFoundException {
         User userUpdate = userDao.get(user.getId());
-        assertThat(userUpdate.getLevel(), is(expectedLevel));
+        if (upgraded) {
+            assertThat(userUpdate.getLevel(), is(user.getLevel().nextLevel()));
+        } else {
+            assertThat(userUpdate.getLevel(), is(user.getLevel()));
+        }
     }
 }

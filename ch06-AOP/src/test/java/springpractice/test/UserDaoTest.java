@@ -4,12 +4,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import springpractice.dao.DaoFactory;
-import springpractice.dao.UserDao;
+import springpractice.dao.UserDaoJdbc;
 import springpractice.domain.Level;
 import springpractice.domain.User;
 
@@ -23,7 +22,7 @@ import static org.junit.Assert.assertThat;
 @ContextConfiguration(classes = DaoFactory.class)
 public class UserDaoTest {
     @Autowired
-    private UserDao dao;
+    private UserDaoJdbc dao;
     private User user1;
     private User user2;
     private User user3;

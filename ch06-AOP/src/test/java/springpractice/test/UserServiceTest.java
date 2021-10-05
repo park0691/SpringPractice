@@ -8,6 +8,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
 import springpractice.dao.UserDao;
+import springpractice.dao.UserDaoJdbc;
 import springpractice.domain.Level;
 import springpractice.domain.User;
 import springpractice.service.TestUserService;
@@ -17,6 +18,7 @@ import springpractice.service.UserServiceTx;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -33,7 +35,7 @@ public class UserServiceTest {
     @Autowired
     UserServiceImpl userService;
     @Autowired
-    UserDao userDao;
+    UserDaoJdbc userDao;
     @Autowired
     DataSource dataSource;
     @Autowired
@@ -56,20 +58,24 @@ public class UserServiceTest {
     }
     @Test
     public void upgradeLevels() throws Exception {
-        userDao.deleteAll();
+        UserServiceImpl userService = new UserServiceImpl();
 
-        for (User user : users) {
-            userDao.add(user);
-        }
+        MockUserDao mockUserDao = new MockUserDao(this.users);
+        userService.setUserDao(mockUserDao);
 
         userService.upgradeLevels();
 
-        checkLevelUpgraded(users.get(0), false);
-        checkLevelUpgraded(users.get(1), true);
-        checkLevelUpgraded(users.get(2), false);
-        checkLevelUpgraded(users.get(3), true);
-        checkLevelUpgraded(users.get(4), false);
+        List<User> updated = mockUserDao.getUpdated();
+        assertThat(updated.size(), is(2));
+        checkUserAndLevel(updated.get(0), "joytouch", Level.SILVER);
+        checkUserAndLevel(updated.get(1), "madnite1", Level.GOLD);
     }
+
+    private void checkUserAndLevel(User updated, String expectedId, Level expectedLevel) {
+        assertThat(updated.getId(), is(expectedId));
+        assertThat(updated.getLevel(), is(expectedLevel));
+    }
+
     @Test
     public void add() throws SQLException, ClassNotFoundException {
         userDao.deleteAll();
@@ -114,6 +120,48 @@ public class UserServiceTest {
             assertThat(userUpdate.getLevel(), is(user.getLevel().nextLevel()));
         } else {
             assertThat(userUpdate.getLevel(), is(user.getLevel()));
+        }
+    }
+
+    static class MockUserDao implements UserDao {
+        private List<User> users;
+        private List<User> updated = new ArrayList<>();
+
+        public MockUserDao(List<User> users) {
+            this.users = users;
+        }
+
+        public List<User> getUpdated() {
+            return updated;
+        }
+
+        public void update(User user) {
+            updated.add(user);
+        }
+
+        @Override
+        public List<User> getAll() {
+            return this.users;
+        }
+
+        @Override
+        public void add(User user) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public User get(String id) throws ClassNotFoundException, SQLException {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteAll() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public int getCount() {
+            throw new UnsupportedOperationException();
         }
     }
 }

@@ -14,8 +14,8 @@ import javax.sql.DataSource;
 @Configuration  /* 애플리케이션 컨텍스트 or 빈 팩토리가 사용할 설정 정보 표시 */
 public class DaoFactory {
     @Bean       /* 오브젝트 생성을 담당하는 IoC 용 메소드 표시 */
-    public UserDao userDao() {
-        UserDao userDao = new UserDao();
+    public UserDaoJdbc userDao() {
+        UserDaoJdbc userDao = new UserDaoJdbc();
         userDao.setDataSource(dataSource());
         return userDao;
     }

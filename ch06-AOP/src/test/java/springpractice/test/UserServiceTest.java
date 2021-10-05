@@ -3,6 +3,7 @@ package springpractice.test;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.aop.framework.ProxyFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
@@ -34,7 +35,7 @@ import static springpractice.service.UserServiceImpl.MIN_RECOMMEND_FOR_GOLD;
 @ContextConfiguration(locations="/applicationContext.xml")
 public class UserServiceTest {
     @Autowired
-    UserServiceImpl userService;
+    ProxyFactoryBean userService;
     @Autowired
     UserDaoJdbc userDao;
     @Autowired
@@ -55,10 +56,7 @@ public class UserServiceTest {
                 new User("green", "오민규", "p1", Level.GOLD, 100, Integer.MAX_VALUE)
         );
     }
-    @Test
-    public void bean() {
-        assertThat(this.userService, is(notNullValue()));
-    }
+    
     @Test
     public void upgradeLevels() throws Exception {
         UserServiceImpl userService = new UserServiceImpl();
@@ -79,43 +77,34 @@ public class UserServiceTest {
         assertThat(updated.getLevel(), is(expectedLevel));
     }
 
-    @Test
-    public void add() throws SQLException, ClassNotFoundException {
-        userDao.deleteAll();
+//    @Test
+//    public void add() throws SQLException, ClassNotFoundException {
+//        userDao.deleteAll();
+//
+//        User userWithLevel = users.get(4);
+//        User userWithoutLevel = users.get(0);
+//        userWithoutLevel.setLevel(null);
+//
+//        userService.add(userWithLevel);
+//        userService.add(userWithoutLevel);
+//
+//        User userWithLevelRead = userDao.get(userWithLevel.getId());
+//        User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
+//
+//        assertThat(userWithLevelRead.getLevel(), is(userWithLevel.getLevel()));
+//        assertThat(userWithoutLevelRead.getLevel(), is(Level.BASIC));
+//    }
 
-        User userWithLevel = users.get(4);
-        User userWithoutLevel = users.get(0);
-        userWithoutLevel.setLevel(null);
-
-        userService.add(userWithLevel);
-        userService.add(userWithoutLevel);
-
-        User userWithLevelRead = userDao.get(userWithLevel.getId());
-        User userWithoutLevelRead = userDao.get(userWithoutLevel.getId());
-
-        assertThat(userWithLevelRead.getLevel(), is(userWithLevel.getLevel()));
-        assertThat(userWithoutLevelRead.getLevel(), is(Level.BASIC));
-    }
     @Test
     @DirtiesContext
     public void upgradeAllOrNothing() throws Exception {
         UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(this.userDao);
 
-        TransactionHandler txHandler = new TransactionHandler();
-        txHandler.setTarget(testUserService);
-        txHandler.setTransactionManager(this.platformTransactionManager);
-        txHandler.setPattern("upgradeLevels");
-
-//        UserServiceTx txUserService = new UserServiceTx();
-//        txUserService.setTransactionManager(this.platformTransactionManager);
-//        txUserService.setUserService(testUserService);
-        TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", TxProxyFactoryBean.class);
+        ProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", ProxyFactoryBean.class);
         txProxyFactoryBean.setTarget(testUserService);
         UserService txUserService = (UserService) txProxyFactoryBean.getObject();
-//        UserService txUserService = (UserService) Proxy.newProxyInstance(
-//                getClass().getClassLoader(), new Class[] { UserService.class }, txHandler
-//        );
+
 
         userDao.deleteAll();
         for(User user : users) userDao.add(user);

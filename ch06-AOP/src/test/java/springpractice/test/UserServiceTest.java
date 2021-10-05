@@ -4,6 +4,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -11,12 +13,11 @@ import springpractice.dao.UserDao;
 import springpractice.dao.UserDaoJdbc;
 import springpractice.domain.Level;
 import springpractice.domain.User;
-import springpractice.service.TestUserService;
-import springpractice.service.TestUserServiceException;
-import springpractice.service.UserServiceImpl;
-import springpractice.service.UserServiceTx;
+import springpractice.proxy.TransactionHandler;
+import springpractice.service.*;
 
 import javax.sql.DataSource;
+import java.lang.reflect.Proxy;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +41,8 @@ public class UserServiceTest {
     DataSource dataSource;
     @Autowired
     PlatformTransactionManager platformTransactionManager;
+    @Autowired
+    ApplicationContext context;
     List<User> users;
 
     @Before
@@ -94,13 +97,25 @@ public class UserServiceTest {
         assertThat(userWithoutLevelRead.getLevel(), is(Level.BASIC));
     }
     @Test
+    @DirtiesContext
     public void upgradeAllOrNothing() throws Exception {
         UserServiceImpl testUserService = new TestUserService(users.get(3).getId());
         testUserService.setUserDao(this.userDao);
 
-        UserServiceTx txUserService = new UserServiceTx();
-        txUserService.setTransactionManager(this.platformTransactionManager);
-        txUserService.setUserService(testUserService);
+        TransactionHandler txHandler = new TransactionHandler();
+        txHandler.setTarget(testUserService);
+        txHandler.setTransactionManager(this.platformTransactionManager);
+        txHandler.setPattern("upgradeLevels");
+
+//        UserServiceTx txUserService = new UserServiceTx();
+//        txUserService.setTransactionManager(this.platformTransactionManager);
+//        txUserService.setUserService(testUserService);
+        TxProxyFactoryBean txProxyFactoryBean = context.getBean("&userService", TxProxyFactoryBean.class);
+        txProxyFactoryBean.setTarget(testUserService);
+        UserService txUserService = (UserService) txProxyFactoryBean.getObject();
+//        UserService txUserService = (UserService) Proxy.newProxyInstance(
+//                getClass().getClassLoader(), new Class[] { UserService.class }, txHandler
+//        );
 
         userDao.deleteAll();
         for(User user : users) userDao.add(user);
